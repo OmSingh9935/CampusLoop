@@ -23,10 +23,10 @@ export default async function RootPage() {
   }
 
   const cookieStore = await cookies()
-  const demoCookie = cookieStore.get('campus_loop_demo_user')
-  const hasDemo = !!demoCookie?.value
+  const userCookie = cookieStore.get('campus_loop_user') || cookieStore.get('campus_loop_demo_user')
+  const hasUser = !!userCookie?.value
 
-  if (user || hasDemo) {
+  if (user || hasUser) {
     redirect(ROUTES.DASHBOARD)
   } else {
     redirect(ROUTES.LOGIN)

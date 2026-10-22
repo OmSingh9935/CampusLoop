@@ -294,6 +294,17 @@ export default function GroupChatClient({
 
     updateLocalCache((prev) => [...prev, optimisticMsg])
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('campus_loop_message_updated', {
+          detail: {
+            groupId: initialGroup.id,
+            message: optimisticMsg,
+          },
+        })
+      )
+    }
+
     if (isSupabaseConfigured()) {
       try {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(initialGroup.id)

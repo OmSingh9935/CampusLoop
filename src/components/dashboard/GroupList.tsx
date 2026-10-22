@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Search, Filter, X } from 'lucide-react'
 import GroupListItem from './GroupListItem'
@@ -24,19 +24,86 @@ export default function GroupList({
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState<string>('all')
+  const [localGroups, setLocalGroups] = useState<GroupWithMeta[]>(groups)
+
+  // Sync state if groups prop changes
+  useEffect(() => {
+    setLocalGroups(groups)
+  }, [groups])
+
+  // Hydrate last messages from localStorage on mount & listen to message updates
+  useEffect(() => {
+    const hydrateLastMessages = () => {
+      setLocalGroups((prev) =>
+        prev.map((g) => {
+          try {
+            const cacheKey = `campus_loop_msgs_${g.id}`
+            const cached = JSON.parse(localStorage.getItem(cacheKey) || '[]')
+            if (Array.isArray(cached) && cached.length > 0) {
+              const last = cached[cached.length - 1]
+              return {
+                ...g,
+                last_message: {
+                  id: last.id,
+                  content: last.content,
+                  created_at: last.created_at,
+                  sender_id: last.sender_id,
+                  sender: last.sender ? { full_name: last.sender.full_name, role: last.sender.role } : undefined,
+                  attachment_url: last.attachment_url,
+                  attachment_type: last.attachment_type,
+                } as any,
+              }
+            }
+          } catch {}
+          return g
+        })
+      )
+    }
+
+    hydrateLastMessages()
+
+    const handleMessageUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent
+      const { groupId, message } = customEvent.detail || {}
+      if (!groupId || !message) return
+
+      setLocalGroups((prev) =>
+        prev.map((g) => {
+          if (g.id === groupId || g.slug === groupId) {
+            return {
+              ...g,
+              last_message: {
+                id: message.id,
+                content: message.content,
+                created_at: message.created_at,
+                sender_id: message.sender_id,
+                sender: message.sender ? { full_name: message.sender.full_name, role: message.sender.role } : undefined,
+                attachment_url: message.attachment_url,
+                attachment_type: message.attachment_type,
+              } as any,
+            }
+          }
+          return g
+        })
+      )
+    }
+
+    window.addEventListener('campus_loop_message_updated', handleMessageUpdate)
+    return () => window.removeEventListener('campus_loop_message_updated', handleMessageUpdate)
+  }, [])
 
   // Extract all unique tags across all groups
   const allTags = useMemo(() => {
     const tags = new Set<string>()
-    groups.forEach((g) => {
+    localGroups.forEach((g) => {
       g.tags?.forEach((t) => tags.add(t))
     })
     return Array.from(tags)
-  }, [groups])
+  }, [localGroups])
 
   // Filter and sort groups
   const filteredGroups = useMemo(() => {
-    return groups
+    return localGroups
       .filter((group) => {
         const matchesQuery =
           group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -63,7 +130,7 @@ export default function GroupList({
         // Fallback to sort_order
         return a.sort_order - b.sort_order
       })
-  }, [groups, searchQuery, selectedTag])
+  }, [localGroups, searchQuery, selectedTag])
 
   return (
     <div className="flex flex-col h-full bg-card/40 border-r border-border select-none">

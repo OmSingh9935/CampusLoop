@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Loader2, LogIn } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { authenticateUser } from '@/lib/authStore'
 import { loginSchema, type LoginFormData } from '@/lib/validations'
 import { ROUTES, APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -33,37 +34,18 @@ export default function LoginForm() {
       const email = data.email.toLowerCase().trim()
 
       if (!isSupabaseConfigured()) {
-        const mockUser = {
-          id: 'user-' + Date.now(),
-          campus_id: 'CL-' + Math.floor(100000 + Math.random() * 900000),
-          full_name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-          username: email.split('@')[0],
-          email,
-          role: email.includes('admin')
-            ? 'admin'
-            : email.includes('prof') || email.includes('dr')
-            ? 'teacher'
-            : 'student',
-          department: 'Computer Science & Engineering',
-          year: 3,
-          bio: 'KIET Member on CampusLoop',
-          avatar_url: null,
-          is_verified: true,
-          is_banned: false,
-          is_muted: false,
-          muted_until: null,
-          helpful_count: 5,
-          reputation: 25,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+        const result = authenticateUser(email, data.password)
+        if (!result.success) {
+          toast.error(result.error || 'Authentication failed')
+          if (result.error?.includes('create an account first')) {
+            setError('email', { message: 'No account found with this email. Please sign up first.' })
+          } else if (result.error?.includes('password')) {
+            setError('password', { message: 'Incorrect password. Please try again.' })
+          }
+          return
         }
 
-        document.cookie = `campus_loop_demo_user=${encodeURIComponent(JSON.stringify(mockUser))}; path=/; max-age=604800; SameSite=Lax`
-        try {
-          localStorage.setItem('campus_loop_current_user', JSON.stringify(mockUser))
-        } catch {}
-
-        toast.success(`Welcome back, ${mockUser.full_name}!`)
+        toast.success(`Welcome back, ${result.user?.full_name}!`)
         router.push(ROUTES.DASHBOARD)
         router.refresh()
         return
@@ -92,56 +74,22 @@ export default function LoginForm() {
         router.push(ROUTES.DASHBOARD)
         router.refresh()
       } catch (authErr: any) {
-        const isNetworkErr =
-          authErr?.message?.includes('NetworkError') ||
-          authErr?.message?.includes('Failed to fetch') ||
-          authErr?.message?.includes('fetch failed')
-
-        const isPlaceholder =
-          !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-          process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder') ||
-          process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project') ||
-          process.env.NEXT_PUBLIC_SUPABASE_URL.includes('dummy')
-
-        if (isNetworkErr || isPlaceholder || authErr) {
-          const email = data.email.toLowerCase().trim()
-          const mockUser = {
-            id: 'user-' + Date.now(),
-            campus_id: 'CL-' + Math.floor(100000 + Math.random() * 900000),
-            full_name: email.split('@')[0].replace('.', ' ').toUpperCase(),
-            username: email.split('@')[0],
-            email,
-            role: email.includes('admin')
-              ? 'admin'
-              : email.includes('prof') || email.includes('dr')
-              ? 'teacher'
-              : 'student',
-            department: 'Computer Science & Engineering',
-            year: 3,
-            bio: 'KIET Member on CampusLoop',
-            avatar_url: null,
-            is_verified: true,
-            is_banned: false,
-            is_muted: false,
-            muted_until: null,
-            helpful_count: 5,
-            reputation: 25,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-
-          document.cookie = `campus_loop_demo_user=${encodeURIComponent(JSON.stringify(mockUser))}; path=/; max-age=604800`
-          try {
-            localStorage.setItem('campus_loop_current_user', JSON.stringify(mockUser))
-          } catch {}
-
-          toast.success(`Welcome back, ${mockUser.full_name}!`)
+        // Fallback to local verified registry
+        const result = authenticateUser(email, data.password)
+        if (result.success && result.user) {
+          toast.success(`Welcome back, ${result.user.full_name}!`)
           router.push(ROUTES.DASHBOARD)
           router.refresh()
           return
         }
 
-        throw authErr
+        const message = result.error || authErr?.message || 'Login failed. Please verify credentials.'
+        toast.error(message)
+        if (message.includes('create an account first')) {
+          setError('email', { message: 'No account found with this email. Please sign up first.' })
+        } else {
+          setError('password', { message: 'Invalid email or password' })
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed. Please try again.'

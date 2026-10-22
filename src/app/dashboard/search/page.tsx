@@ -171,7 +171,56 @@ export default function SearchPage() {
       setIsLoading(true)
 
       const filterFallback = () => {
-        let filtered = [...DEFAULT_INDEX_ITEMS]
+        let allItems = [...DEFAULT_INDEX_ITEMS]
+        try {
+          const groupIds = [
+            'academic-doubts',
+            'courses-study-material',
+            'examinations-results',
+            'holidays-notices',
+            'scholarships-funding',
+            'bootcamps-workshops',
+            'internships-jobs',
+            'hackathons-competitions',
+            'placements-interview-prep',
+            'projects-collaboration',
+            'general-campus',
+          ]
+          groupIds.forEach((gid) => {
+            const raw = localStorage.getItem(`campus_loop_msgs_${gid}`)
+            if (raw) {
+              const msgs = JSON.parse(raw)
+              if (Array.isArray(msgs)) {
+                msgs.forEach((m: any) => {
+                  if (!allItems.some((existing) => existing.id === m.id)) {
+                    allItems.unshift({
+                      id: m.id,
+                      type: m.attachment_name ? 'resource' : 'message',
+                      groupName: gid.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                      groupId: gid,
+                      groupIcon: '💬',
+                      sender: m.sender || {
+                        id: m.sender_id,
+                        campus_id: 'CL-000000',
+                        full_name: 'KIET Member',
+                        role: 'student' as UserRole,
+                        avatar_url: null,
+                      },
+                      content: m.content,
+                      attachmentName: m.attachment_name,
+                      tag: m.tag || 'general',
+                      isAnswer: m.is_answer || false,
+                      helpfulCount: m.helpful_count || 0,
+                      createdAt: m.created_at,
+                    })
+                  }
+                })
+              }
+            }
+          })
+        } catch {}
+
+        let filtered = allItems
         if (query.trim()) {
           const q = query.toLowerCase()
           filtered = filtered.filter(

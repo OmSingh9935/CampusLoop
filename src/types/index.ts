@@ -178,8 +178,23 @@ export interface Mention {
 // App State / UI Types
 // ============================================================
 
+export interface LastMessageSummary {
+  id?: string
+  content?: string
+  created_at?: string
+  sender_id?: string
+  sender?: { full_name: string; role: UserRole } | Profile | null
+  attachment_url?: string | null
+  attachment_name?: string | null
+  attachment_type?: AttachmentType | null
+  attachment_size?: number | null
+  tag?: MessageTag
+  is_answer?: boolean
+  helpful_count?: number
+}
+
 export interface GroupWithMeta extends Group {
-  last_message?: Message | null
+  last_message?: LastMessageSummary | Message | null
   unread_count?: number
   user_prefs?: UserGroupPref | null
 }

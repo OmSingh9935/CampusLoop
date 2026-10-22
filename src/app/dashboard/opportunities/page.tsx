@@ -150,7 +150,62 @@ export default function OpportunitiesPage() {
     async function loadOpportunities() {
       setIsLoading(true)
       if (!isSupabaseConfigured()) {
-        setOpportunities(SAMPLE_OPPORTUNITIES)
+        let allOpps = [...SAMPLE_OPPORTUNITIES]
+        try {
+          const groupIds = [
+            'internships-jobs',
+            'hackathons-competitions',
+            'scholarships-funding',
+            'bootcamps-workshops',
+            'projects-collaboration',
+          ]
+          groupIds.forEach((gid) => {
+            const raw = localStorage.getItem(`campus_loop_msgs_${gid}`)
+            if (raw) {
+              const msgs = JSON.parse(raw)
+              if (Array.isArray(msgs)) {
+                msgs
+                  .filter((m: any) => m.tag === 'opportunity')
+                  .forEach((m: any) => {
+                    if (!allOpps.some((o) => o.id === m.id)) {
+                      allOpps.unshift({
+                        id: m.id,
+                        group_id: gid,
+                        group_name: gid
+                          .replace(/-/g, ' ')
+                          .replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                        group_icon: '💼',
+                        content: m.content,
+                        tag: 'opportunity',
+                        created_at: m.created_at,
+                        sender: m.sender || {
+                          id: m.sender_id,
+                          campus_id: 'CL-000000',
+                          full_name: 'KIET Member',
+                          username: 'member',
+                          email: 'user@kiet.edu',
+                          role: 'student',
+                          department: 'Computer Science & Engineering',
+                          year: 3,
+                          bio: null,
+                          avatar_url: null,
+                          is_verified: true,
+                          is_banned: false,
+                          is_muted: false,
+                          muted_until: null,
+                          helpful_count: 0,
+                          reputation: 15,
+                          created_at: m.created_at,
+                          updated_at: m.created_at,
+                        },
+                      })
+                    }
+                  })
+              }
+            }
+          })
+        } catch {}
+        setOpportunities(allOpps)
         setIsLoading(false)
         return
       }

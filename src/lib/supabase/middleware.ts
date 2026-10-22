@@ -25,11 +25,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  const demoCookie = request.cookies.get('campus_loop_demo_user')
-  const hasDemoUser = !!demoCookie?.value
+  const userCookie = request.cookies.get('campus_loop_user') || request.cookies.get('campus_loop_demo_user')
+  const hasDemoUser = !!userCookie?.value
   const isDemoAdmin =
-    demoCookie?.value?.includes('"role":"admin"') ||
-    demoCookie?.value?.includes('%22role%22%3A%22admin%22')
+    userCookie?.value?.includes('"role":"admin"') ||
+    userCookie?.value?.includes('%22role%22%3A%22admin%22')
 
   let user = null
 

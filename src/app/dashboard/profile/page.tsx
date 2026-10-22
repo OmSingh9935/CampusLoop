@@ -122,11 +122,26 @@ export default function ProfilePage() {
     setProfile(updated)
     setIsEditing(false)
 
-    // Save to localStorage
+    // Save to localStorage & session cookie
     try {
-      localStorage.setItem('campus_loop_current_user', JSON.stringify(updated))
-      // Update demo cookie for SSR
-      document.cookie = `campus_loop_demo_user=${encodeURIComponent(JSON.stringify(updated))}; path=/; max-age=604800`
+      const jsonStr = JSON.stringify(updated)
+      localStorage.setItem('campus_loop_current_user', jsonStr)
+      document.cookie = `campus_loop_user=${encodeURIComponent(jsonStr)}; path=/; max-age=604800; SameSite=Lax`
+      document.cookie = `campus_loop_demo_user=${encodeURIComponent(jsonStr)}; path=/; max-age=604800; SameSite=Lax`
+
+      // Also update in registered users registry
+      const regRaw = localStorage.getItem('campus_loop_registered_users')
+      if (regRaw) {
+        const users = JSON.parse(regRaw)
+        if (Array.isArray(users)) {
+          const updatedUsers = users.map((u: any) =>
+            u.id === updated.id || u.email?.toLowerCase() === updated.email?.toLowerCase()
+              ? { ...u, ...updated }
+              : u
+          )
+          localStorage.setItem('campus_loop_registered_users', JSON.stringify(updatedUsers))
+        }
+      }
     } catch {}
 
     // Also update Supabase profiles table if authenticated

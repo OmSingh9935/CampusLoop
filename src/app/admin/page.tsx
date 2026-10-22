@@ -25,6 +25,15 @@ export default function AdminOverviewPage() {
   useEffect(() => {
     async function loadStats() {
       if (!isSupabaseConfigured()) {
+        try {
+          const rawUsers = localStorage.getItem('campus_loop_registered_users')
+          if (rawUsers) {
+            const users = JSON.parse(rawUsers)
+            if (Array.isArray(users)) {
+              setStatsData((prev) => ({ ...prev, users: users.length.toString() }))
+            }
+          }
+        } catch {}
         return
       }
 

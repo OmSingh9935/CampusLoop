@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Loader2, UserPlus, Info } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { registerNewUser } from '@/lib/authStore'
 import { signupSchema, type SignupFormData } from '@/lib/validations'
 import { ROUTES, APP_NAME, DEPARTMENTS, YEARS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -44,34 +45,24 @@ export default function SignupForm() {
       }
 
       if (!isSupabaseConfigured()) {
-        const generatedCampusId = `CL-${Math.floor(100000 + Math.random() * 900000)}`
-        const mockUser = {
-          id: `user-${Date.now()}`,
-          campus_id: generatedCampusId,
-          full_name: data.full_name.trim(),
-          username: email.split('@')[0],
+        const result = registerNewUser({
+          full_name: data.full_name,
           email,
+          password: data.password,
           role: data.role,
-          department: data.department || 'Computer Science & Engineering',
-          year: data.year ? parseInt(data.year) : 2,
-          bio: 'KIET Student Explorer',
-          avatar_url: null,
-          is_verified: true,
-          is_banned: false,
-          is_muted: false,
-          muted_until: null,
-          helpful_count: 0,
-          reputation: 15,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          department: data.department,
+          year: data.year ? parseInt(data.year) : undefined,
+        })
+
+        if (!result.success) {
+          toast.error(result.error || 'Failed to create account')
+          if (result.error?.includes('already exists')) {
+            setError('email', { message: 'This email is already registered. Please log in.' })
+          }
+          return
         }
 
-        document.cookie = `campus_loop_demo_user=${encodeURIComponent(JSON.stringify(mockUser))}; path=/; max-age=604800; SameSite=Lax`
-        try {
-          localStorage.setItem('campus_loop_current_user', JSON.stringify(mockUser))
-        } catch {}
-
-        toast.success(`Welcome to CampusLoop, ${mockUser.full_name}!`)
+        toast.success(`Account created! Welcome, ${result.user?.full_name}!`)
         router.push(ROUTES.DASHBOARD)
         router.refresh()
         return
@@ -108,53 +99,28 @@ export default function SignupForm() {
           toast.success('Welcome to CampusLoop!')
         }
       } catch (authErr: any) {
-        // If Supabase endpoint is unconfigured or returns network error, use local verified session
-        const isNetworkErr =
-          authErr?.message?.includes('NetworkError') ||
-          authErr?.message?.includes('Failed to fetch') ||
-          authErr?.message?.includes('fetch failed')
+        // Fallback to local verified registry
+        const result = registerNewUser({
+          full_name: data.full_name,
+          email,
+          password: data.password,
+          role: data.role,
+          department: data.department,
+          year: data.year ? parseInt(data.year) : undefined,
+        })
 
-        const isPlaceholder =
-          !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-          process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder') ||
-          process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project') ||
-          process.env.NEXT_PUBLIC_SUPABASE_URL.includes('dummy')
-
-        if (isNetworkErr || isPlaceholder || authErr) {
-          const generatedCampusId = `CL-${Math.floor(100000 + Math.random() * 900000)}`
-          const mockUser = {
-            id: `user-${Date.now()}`,
-            campus_id: generatedCampusId,
-            full_name: data.full_name.trim(),
-            username: email.split('@')[0],
-            email,
-            role: data.role,
-            department: data.department || 'Computer Science & Engineering',
-            year: data.year ? parseInt(data.year) : 2,
-            bio: 'KIET Student Explorer',
-            avatar_url: null,
-            is_verified: true,
-            is_banned: false,
-            is_muted: false,
-            muted_until: null,
-            helpful_count: 0,
-            reputation: 15,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-
-          document.cookie = `campus_loop_demo_user=${encodeURIComponent(JSON.stringify(mockUser))}; path=/; max-age=604800`
-          try {
-            localStorage.setItem('campus_loop_current_user', JSON.stringify(mockUser))
-          } catch {}
-
-          toast.success(`Welcome to CampusLoop, ${data.full_name}! (ID: ${generatedCampusId})`)
+        if (result.success && result.user) {
+          toast.success(`Account created! Welcome, ${result.user.full_name}!`)
           router.push(ROUTES.DASHBOARD)
           router.refresh()
           return
         }
 
-        throw authErr
+        const message = result.error || authErr?.message || 'Failed to create account. Please try again.'
+        toast.error(message)
+        if (message.includes('already exists')) {
+          setError('email', { message: 'This email is already registered. Try logging in.' })
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Signup failed. Please try again.'

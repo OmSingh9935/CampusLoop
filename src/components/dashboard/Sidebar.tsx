@@ -15,6 +15,7 @@ import toast from 'react-hot-toast'
 import ThemeToggle from '@/components/shared/ThemeToggle'
 import Avatar from '@/components/shared/Avatar'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { clearActiveSession } from '@/lib/authStore'
 import { ROUTES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@/types'
@@ -35,12 +36,7 @@ export default function Sidebar({ currentUser }: SidebarProps) {
       }
     } catch {}
 
-    // Clear demo session cookie and local cache
-    document.cookie = 'campus_loop_demo_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    try {
-      localStorage.removeItem('campus_loop_current_user')
-    } catch {}
-
+    clearActiveSession()
     toast.success('Signed out successfully')
     router.push(ROUTES.LOGIN)
     router.refresh()

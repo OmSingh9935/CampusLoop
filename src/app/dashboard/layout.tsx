@@ -7,7 +7,7 @@ import DashboardShell from '@/components/dashboard/DashboardShell'
 import { ROUTES } from '@/lib/constants'
 import type { GroupWithMeta, Profile } from '@/types'
 
-// Mock fallback groups for preview if DB not yet seeded
+// Mock fallback groups with authentic last messages
 const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
   {
     id: 'academic-doubts',
@@ -24,6 +24,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-ad-2',
+      content: 'A process is an executing instance of a program with its own memory space...',
+      created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+      sender: { full_name: 'Dr. R. K. Sharma', role: 'teacher' },
+    },
   },
   {
     id: 'courses-study-material',
@@ -40,6 +46,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-cs-1',
+      content: 'Uploaded handwritten unit 1-3 lecture notes for Data Structures (KCS-301)...',
+      created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+      sender: { full_name: 'Aarav Kumar', role: 'student' },
+    },
   },
   {
     id: 'examinations-results',
@@ -56,6 +68,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-er-1',
+      content: 'Pre-University Examination (PUE) tentative schedules published on ERP.',
+      created_at: new Date(Date.now() - 3600000 * 16).toISOString(),
+      sender: { full_name: 'Dr. R. K. Sharma', role: 'teacher' },
+    },
   },
   {
     id: 'holidays-notices',
@@ -72,6 +90,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-hn-1',
+      content: 'Official Circular: Institute will remain closed on upcoming official holidays.',
+      created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+      sender: { full_name: 'T&P Official', role: 'admin' },
+    },
   },
   {
     id: 'scholarships-funding',
@@ -88,6 +112,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-sf-1',
+      content: 'UP Post-Matric Scholarship: Submit documents to Student Section Room 102.',
+      created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+      sender: { full_name: 'Scholarship Desk', role: 'admin' },
+    },
   },
   {
     id: 'bootcamps-workshops',
@@ -104,6 +134,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-bw-1',
+      content: '3-Day Hands-on Cloud Computing & Docker Workshop starting this Saturday!',
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+      sender: { full_name: 'Tech Club KIET', role: 'student' },
+    },
   },
   {
     id: 'internships-jobs',
@@ -120,6 +156,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-ij-1',
+      content: 'Summer Internship 2026 applications are officially open for Microsoft & Cisco.',
+      created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+      sender: { full_name: 'T&P Cell Official', role: 'admin' },
+    },
   },
   {
     id: 'hackathons-competitions',
@@ -136,6 +178,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-hc-1',
+      content: 'Forming a team of 4 for Smart India Hackathon (SIH 2026)! Looking for 1 dev.',
+      created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+      sender: { full_name: 'Priya Verma', role: 'student' },
+    },
   },
   {
     id: 'placements-interview-prep',
@@ -152,6 +200,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-pip-1',
+      content: 'Top 50 Dynamic Programming & Graph interview questions practice sheet shared.',
+      created_at: new Date(Date.now() - 3600000 * 9).toISOString(),
+      sender: { full_name: 'Aman Deep', role: 'student' },
+    },
   },
   {
     id: 'projects-collaboration',
@@ -168,6 +222,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-pc-1',
+      content: 'Looking for 1 frontend developer (Next.js/Tailwind) for Final Year Project.',
+      created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+      sender: { full_name: 'Rohan Gupta', role: 'student' },
+    },
   },
   {
     id: 'general-campus',
@@ -184,6 +244,12 @@ const DEFAULT_PREVIEW_GROUPS: GroupWithMeta[] = [
     created_by: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
+    last_message: {
+      id: 'demo-msg-gc-1',
+      content: 'Inter-branch Cricket & Badminton Tournament registrations are now open!',
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+      sender: { full_name: 'Sports Committee', role: 'student' },
+    },
   },
 ]
 
@@ -252,37 +318,21 @@ export default async function DashboardLayout({
       }
     }
   } else {
-    // Check if demo user cookie exists
+    // Check if real user session cookie exists
     const cookieStore = await cookies()
-    const demoCookie = cookieStore.get('campus_loop_demo_user')
-    if (demoCookie?.value) {
+    const sessionCookie =
+      cookieStore.get('campus_loop_user') ||
+      cookieStore.get('campus_loop_demo_user')
+
+    if (sessionCookie?.value) {
       try {
-        currentUser = JSON.parse(decodeURIComponent(demoCookie.value))
+        currentUser = JSON.parse(decodeURIComponent(sessionCookie.value))
       } catch {}
     }
 
+    // Strict security: User must create account and log in
     if (!currentUser) {
-      // Default preview profile
-      currentUser = {
-        id: 'demo-user-id',
-        campus_id: 'CL-000001',
-        full_name: 'Demo Student',
-        username: 'student_kiet',
-        email: 'student@kiet.edu',
-        role: 'student',
-        department: 'Computer Science & Engineering',
-        year: 3,
-        bio: 'KIET Student Explorer',
-        avatar_url: null,
-        is_verified: true,
-        is_banned: false,
-        is_muted: false,
-        muted_until: null,
-        helpful_count: 12,
-        reputation: 40,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
+      redirect(ROUTES.LOGIN)
     }
   }
 

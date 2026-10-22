@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { createClient, isSupabaseConfigured, withTimeout } from '@/lib/supabase/server'
+import { ROUTES } from '@/lib/constants'
 import GroupChatClient from './GroupChatClient'
 import type { GroupWithMeta, MessageWithSender, Profile } from '@/types'
 
@@ -234,36 +236,23 @@ export default async function GroupPage({
       updated_at: new Date().toISOString(),
     }
   } else {
-    // Check if demo/local session cookie exists
+    // Check if real user session cookie exists
     const cookieStore = await cookies()
-    const demoCookie = cookieStore.get('campus_loop_demo_user')
-    let foundDemoUser: Profile | null = null
-    if (demoCookie?.value) {
+    const sessionCookie =
+      cookieStore.get('campus_loop_user') ||
+      cookieStore.get('campus_loop_demo_user')
+    let foundUser: Profile | null = null
+    if (sessionCookie?.value) {
       try {
-        foundDemoUser = JSON.parse(decodeURIComponent(demoCookie.value))
+        foundUser = JSON.parse(decodeURIComponent(sessionCookie.value))
       } catch {}
     }
 
-    currentUser = foundDemoUser || {
-      id: 'demo-user-id',
-      campus_id: 'CL-000001',
-      full_name: 'KIET Student',
-      username: 'student_kiet',
-      email: 'student@kiet.edu',
-      role: 'student',
-      department: 'Computer Science & Engineering',
-      year: 2,
-      bio: null,
-      avatar_url: null,
-      is_verified: true,
-      is_banned: false,
-      is_muted: false,
-      muted_until: null,
-      helpful_count: 0,
-      reputation: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    if (!foundUser) {
+      redirect(ROUTES.LOGIN)
     }
+
+    currentUser = foundUser
   }
 
   // 2. Fetch Group from database (safe against invalid UUID syntax)

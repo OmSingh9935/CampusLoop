@@ -25,30 +25,52 @@ export default function GroupListItem({
   const renderLastMessagePreview = () => {
     if (!lastMsg) {
       return (
-        <span className="italic text-muted-foreground/70">
-          No messages yet. Start the conversation!
+        <span className="text-muted-foreground/60 text-xs">
+          Tap to start discussing in this room
         </span>
       )
     }
+
+    let myId = ''
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('campus_loop_current_user')
+        if (stored) myId = JSON.parse(stored).id
+      } catch {}
+    }
+
+    const isMe = !!myId && (lastMsg as any).sender_id === myId
+    const senderPrefix = isMe
+      ? 'You: '
+      : lastMsg.sender?.full_name
+      ? `${lastMsg.sender.full_name.split(' ')[0]}: `
+      : ''
 
     if (lastMsg.attachment_url) {
       if (lastMsg.attachment_type === 'image') {
         return (
           <span className="flex items-center gap-1 text-xs">
             <ImageIcon size={13} className="text-primary shrink-0" />
-            <span>Photo {lastMsg.content ? `• ${truncate(lastMsg.content, 20)}` : ''}</span>
+            <span>{senderPrefix}Photo {lastMsg.content ? `• ${truncate(lastMsg.content, 20)}` : ''}</span>
           </span>
         )
       }
       return (
         <span className="flex items-center gap-1 text-xs">
           <FileText size={13} className="text-primary shrink-0" />
-          <span>Attachment {lastMsg.content ? `• ${truncate(lastMsg.content, 20)}` : ''}</span>
+          <span>{senderPrefix}Attachment {lastMsg.content ? `• ${truncate(lastMsg.content, 20)}` : ''}</span>
         </span>
       )
     }
 
-    return <span>{truncate(lastMsg.content, 35)}</span>
+    return (
+      <span className="text-xs">
+        <strong className={cn(isMe ? 'text-primary font-semibold' : 'text-foreground/90 font-medium')}>
+          {senderPrefix}
+        </strong>
+        <span className="text-muted-foreground">{truncate(lastMsg.content || '', 35)}</span>
+      </span>
+    )
   }
 
   return (
