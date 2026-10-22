@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   FolderTree
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured, withTimeout } from '@/lib/supabase/client'
 
 export default function AdminOverviewPage() {
   const supabase = createClient()
@@ -24,12 +24,16 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     async function loadStats() {
+      if (!isSupabaseConfigured()) {
+        return
+      }
+
       try {
         const [usersRes, groupsRes, messagesRes, reportsRes] = await Promise.allSettled([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
-          supabase.from('groups').select('*', { count: 'exact', head: true }),
-          supabase.from('messages').select('*', { count: 'exact', head: true }),
-          supabase.from('reports').select('*', { count: 'exact', head: true }).eq('is_resolved', false),
+          withTimeout(supabase.from('profiles').select('*', { count: 'exact', head: true }), 1500, { count: null } as any),
+          withTimeout(supabase.from('groups').select('*', { count: 'exact', head: true }), 1500, { count: null } as any),
+          withTimeout(supabase.from('messages').select('*', { count: 'exact', head: true }), 1500, { count: null } as any),
+          withTimeout(supabase.from('reports').select('*', { count: 'exact', head: true }).eq('is_resolved', false), 1500, { count: null } as any),
         ])
 
         const usersCount = usersRes.status === 'fulfilled' && usersRes.value.count !== null ? usersRes.value.count : null

@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Loader2, UserPlus, Info } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { signupSchema, type SignupFormData } from '@/lib/validations'
 import { ROUTES, APP_NAME, DEPARTMENTS, YEARS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -40,6 +40,40 @@ export default function SignupForm() {
       // Extra client-side check (belt-and-suspenders before hitting Supabase)
       if (!/^[a-zA-Z0-9._%+\-]+@kiet\.edu$/i.test(email)) {
         setError('email', { message: 'Only @kiet.edu email addresses are allowed' })
+        return
+      }
+
+      if (!isSupabaseConfigured()) {
+        const generatedCampusId = `CL-${Math.floor(100000 + Math.random() * 900000)}`
+        const mockUser = {
+          id: `user-${Date.now()}`,
+          campus_id: generatedCampusId,
+          full_name: data.full_name.trim(),
+          username: email.split('@')[0],
+          email,
+          role: data.role,
+          department: data.department || 'Computer Science & Engineering',
+          year: data.year ? parseInt(data.year) : 2,
+          bio: 'KIET Student Explorer',
+          avatar_url: null,
+          is_verified: true,
+          is_banned: false,
+          is_muted: false,
+          muted_until: null,
+          helpful_count: 0,
+          reputation: 15,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
+        document.cookie = `campus_loop_demo_user=${encodeURIComponent(JSON.stringify(mockUser))}; path=/; max-age=604800; SameSite=Lax`
+        try {
+          localStorage.setItem('campus_loop_current_user', JSON.stringify(mockUser))
+        } catch {}
+
+        toast.success(`Welcome to CampusLoop, ${mockUser.full_name}!`)
+        router.push(ROUTES.DASHBOARD)
+        router.refresh()
         return
       }
 

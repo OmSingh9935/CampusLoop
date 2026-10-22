@@ -14,7 +14,7 @@ import {
 import toast from 'react-hot-toast'
 import ThemeToggle from '@/components/shared/ThemeToggle'
 import Avatar from '@/components/shared/Avatar'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { ROUTES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@/types'
@@ -30,13 +30,20 @@ export default function Sidebar({ currentUser }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut()
-      toast.success('Signed out successfully')
-      router.push(ROUTES.LOGIN)
-      router.refresh()
-    } catch {
-      toast.error('Failed to sign out')
-    }
+      if (isSupabaseConfigured()) {
+        await supabase.auth.signOut()
+      }
+    } catch {}
+
+    // Clear demo session cookie and local cache
+    document.cookie = 'campus_loop_demo_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    try {
+      localStorage.removeItem('campus_loop_current_user')
+    } catch {}
+
+    toast.success('Signed out successfully')
+    router.push(ROUTES.LOGIN)
+    router.refresh()
   }
 
   const navItems = [

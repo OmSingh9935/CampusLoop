@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+export { isSupabaseConfigured, withTimeout } from './config'
+
 /**
  * Server-side Supabase client (uses cookies for session).
  * Use in Server Components, Route Handlers, and Server Actions.

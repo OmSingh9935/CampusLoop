@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, isSupabaseConfigured, withTimeout } from '@/lib/supabase/server'
 import GroupChatClient from './GroupChatClient'
 import type { GroupWithMeta, MessageWithSender, Profile } from '@/types'
 
@@ -179,26 +179,37 @@ export default async function GroupPage({
   params: Promise<{ groupId: string }> | { groupId: string }
 }) {
   const { groupId } = await Promise.resolve(params)
-  const supabase = await createClient()
 
   // 1. Fetch current authenticated user
   let user = null
-  try {
-    const res = await supabase.auth.getUser()
-    user = res.data?.user || null
-  } catch {
-    user = null
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient()
+      const res = await withTimeout(
+        supabase.auth.getUser(),
+        1500,
+        { data: { user: null } } as any
+      )
+      user = res?.data?.user || null
+    } catch {
+      user = null
+    }
   }
 
   let currentUser: Profile
-  if (user) {
+  if (user && isSupabaseConfigured()) {
     let profile: Profile | null = null
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const supabase = await createClient()
+      const { data } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single(),
+        1500,
+        { data: null } as any
+      )
       profile = data
     } catch {}
 
@@ -257,17 +268,21 @@ export default async function GroupPage({
 
   // 2. Fetch Group from database (safe against invalid UUID syntax)
   let group: GroupWithMeta | null = null
-  try {
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId)
-    const query = supabase.from('groups').select('*')
-    const { data: dbGroup } = isUUID
-      ? await query.or(`id.eq.${groupId},slug.eq.${groupId}`).maybeSingle()
-      : await query.eq('slug', groupId).maybeSingle()
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient()
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId)
+      const query = supabase.from('groups').select('*')
+      const fetchPromise = isUUID
+        ? query.or(`id.eq.${groupId},slug.eq.${groupId}`).maybeSingle()
+        : query.eq('slug', groupId).maybeSingle()
+      const { data: dbGroup } = await withTimeout(fetchPromise, 1500, { data: null } as any)
 
-    if (dbGroup) {
-      group = dbGroup
-    }
-  } catch {}
+      if (dbGroup) {
+        group = dbGroup
+      }
+    } catch {}
+  }
 
   // Fallback metadata for default groups if DB is still syncing
   if (!group) {
@@ -502,29 +517,36 @@ export default async function GroupPage({
 
   // 3. Fetch Real Messages from database (safe against non-UUID group id)
   let messages: MessageWithSender[] = []
-  try {
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(group.id)
-    if (isUUID) {
-      const { data: dbMessages } = await supabase
-        .from('messages')
-        .select('*, sender:profiles(*)')
-        .eq('group_id', group.id)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-        .limit(100)
+  if (isSupabaseConfigured() && group) {
+    try {
+      const supabase = await createClient()
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(group.id)
+      if (isUUID) {
+        const { data: dbMessages } = await withTimeout(
+          supabase
+            .from('messages')
+            .select('*, sender:profiles(*)')
+            .eq('group_id', group.id)
+            .eq('is_deleted', false)
+            .order('created_at', { ascending: true })
+            .limit(100),
+          1500,
+          { data: null } as any
+        )
 
-      if (dbMessages && dbMessages.length > 0) {
-        messages = dbMessages.map((m: any) => ({
-          ...m,
-          reply_to: null,
-          reactions: [],
-          is_bookmarked: false,
-          user_has_voted_helpful: false,
-        }))
+        if (dbMessages && dbMessages.length > 0) {
+          messages = dbMessages.map((m: any) => ({
+            ...m,
+            reply_to: null,
+            reactions: [],
+            is_bookmarked: false,
+            user_has_voted_helpful: false,
+          }))
+        }
       }
+    } catch {
+      messages = []
     }
-  } catch {
-    messages = []
   }
 
   // Fallback to sample discussion messages if room is fresh
@@ -564,25 +586,32 @@ export default async function GroupPage({
 
   // 4. Fetch Active Members or provide active demo members
   let activeMembers: Profile[] = [currentUser, DEMO_PROFILES.teacher, DEMO_PROFILES.student1, DEMO_PROFILES.student2]
-  try {
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(group.id)
-    if (isUUID) {
-      const { data: memberRows } = await supabase
-        .from('messages')
-        .select('sender:profiles(*)')
-        .eq('group_id', group.id)
-        .limit(20)
+  if (isSupabaseConfigured() && group) {
+    try {
+      const supabase = await createClient()
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(group.id)
+      if (isUUID) {
+        const { data: memberRows } = await withTimeout(
+          supabase
+            .from('messages')
+            .select('sender:profiles(*)')
+            .eq('group_id', group.id)
+            .limit(20),
+          1500,
+          { data: null } as any
+        )
 
-      if (memberRows && memberRows.length > 0) {
-        const unique = new Map<string, Profile>()
-        unique.set(currentUser.id, currentUser)
-        memberRows.forEach((row: any) => {
-          if (row.sender) unique.set(row.sender.id, row.sender)
-        })
-        activeMembers = Array.from(unique.values())
+        if (memberRows && memberRows.length > 0) {
+          const unique = new Map<string, Profile>()
+          unique.set(currentUser.id, currentUser)
+          memberRows.forEach((row: any) => {
+            if (row.sender) unique.set(row.sender.id, row.sender)
+          })
+          activeMembers = Array.from(unique.values())
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
   return (
     <GroupChatClient

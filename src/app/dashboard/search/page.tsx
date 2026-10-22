@@ -12,7 +12,7 @@ import {
 import RoleBadge from '@/components/shared/RoleBadge'
 import TagBadge from '@/components/shared/TagBadge'
 import EmptyState from '@/components/shared/EmptyState'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured, withTimeout } from '@/lib/supabase/client'
 import { formatRelativeTime, cn } from '@/lib/utils'
 import type { MessageTag, UserRole } from '@/types'
 
@@ -169,6 +169,39 @@ export default function SearchPage() {
   useEffect(() => {
     async function performSearch() {
       setIsLoading(true)
+
+      const filterFallback = () => {
+        let filtered = [...DEFAULT_INDEX_ITEMS]
+        if (query.trim()) {
+          const q = query.toLowerCase()
+          filtered = filtered.filter(
+            (i) =>
+              i.content.toLowerCase().includes(q) ||
+              i.groupName.toLowerCase().includes(q) ||
+              i.sender.full_name.toLowerCase().includes(q)
+          )
+        }
+        if (selectedTag !== 'all') {
+          filtered = filtered.filter((i) => i.tag === selectedTag)
+        }
+        if (selectedRole !== 'all') {
+          filtered = filtered.filter((i) => i.sender.role === selectedRole)
+        }
+        if (unansweredOnly || activeTab === 'unanswered') {
+          filtered = filtered.filter((i) => i.tag === 'question' && !i.isAnswer)
+        }
+        if (activeTab === 'resources') {
+          filtered = filtered.filter((i) => !!i.attachmentName)
+        }
+        setResults(filtered)
+      }
+
+      if (!isSupabaseConfigured()) {
+        filterFallback()
+        setIsLoading(false)
+        return
+      }
+
       try {
         let req = supabase
           .from('messages')
@@ -193,7 +226,7 @@ export default function SearchPage() {
           req = req.not('attachment_url', 'is', null)
         }
 
-        const { data } = await req
+        const { data } = await withTimeout(req, 1500, { data: null } as any)
 
         if (data && data.length > 0) {
           const mapped: SearchItem[] = data.map((item: any) => ({
@@ -223,59 +256,10 @@ export default function SearchPage() {
             setResults(mapped)
           }
         } else {
-          // Filter fallback items
-          let filtered = [...DEFAULT_INDEX_ITEMS]
-          if (query.trim()) {
-            const q = query.toLowerCase()
-            filtered = filtered.filter(
-              (i) =>
-                i.content.toLowerCase().includes(q) ||
-                i.groupName.toLowerCase().includes(q) ||
-                i.sender.full_name.toLowerCase().includes(q)
-            )
-          }
-          if (selectedTag !== 'all') {
-            filtered = filtered.filter((i) => i.tag === selectedTag)
-          }
-          if (selectedRole !== 'all') {
-            filtered = filtered.filter((i) => i.sender.role === selectedRole)
-          }
-          if (unansweredOnly || activeTab === 'unanswered') {
-            filtered = filtered.filter((i) => i.tag === 'question' && !i.isAnswer)
-          }
-          if (activeTab === 'resources') {
-            filtered = filtered.filter((i) => i.type === 'resource')
-          }
-          if (activeTab === 'messages') {
-            filtered = filtered.filter((i) => i.type === 'message')
-          }
-          setResults(filtered)
+          filterFallback()
         }
       } catch {
-        // Fallback filter
-        let filtered = [...DEFAULT_INDEX_ITEMS]
-        if (query.trim()) {
-          const q = query.toLowerCase()
-          filtered = filtered.filter(
-            (i) =>
-              i.content.toLowerCase().includes(q) ||
-              i.groupName.toLowerCase().includes(q) ||
-              i.sender.full_name.toLowerCase().includes(q)
-          )
-        }
-        if (selectedTag !== 'all') {
-          filtered = filtered.filter((i) => i.tag === selectedTag)
-        }
-        if (selectedRole !== 'all') {
-          filtered = filtered.filter((i) => i.sender.role === selectedRole)
-        }
-        if (unansweredOnly || activeTab === 'unanswered') {
-          filtered = filtered.filter((i) => i.tag === 'question' && !i.isAnswer)
-        }
-        if (activeTab === 'resources') {
-          filtered = filtered.filter((i) => i.type === 'resource')
-        }
-        setResults(filtered)
+        filterFallback()
       } finally {
         setIsLoading(false)
       }

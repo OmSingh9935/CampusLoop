@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import toast from 'react-hot-toast'
 import { Eye, EyeOff, Loader2, LogIn } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { loginSchema, type LoginFormData } from '@/lib/validations'
 import { ROUTES, APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -30,9 +30,48 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     try {
+      const email = data.email.toLowerCase().trim()
+
+      if (!isSupabaseConfigured()) {
+        const mockUser = {
+          id: 'user-' + Date.now(),
+          campus_id: 'CL-' + Math.floor(100000 + Math.random() * 900000),
+          full_name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+          username: email.split('@')[0],
+          email,
+          role: email.includes('admin')
+            ? 'admin'
+            : email.includes('prof') || email.includes('dr')
+            ? 'teacher'
+            : 'student',
+          department: 'Computer Science & Engineering',
+          year: 3,
+          bio: 'KIET Member on CampusLoop',
+          avatar_url: null,
+          is_verified: true,
+          is_banned: false,
+          is_muted: false,
+          muted_until: null,
+          helpful_count: 5,
+          reputation: 25,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
+        document.cookie = `campus_loop_demo_user=${encodeURIComponent(JSON.stringify(mockUser))}; path=/; max-age=604800; SameSite=Lax`
+        try {
+          localStorage.setItem('campus_loop_current_user', JSON.stringify(mockUser))
+        } catch {}
+
+        toast.success(`Welcome back, ${mockUser.full_name}!`)
+        router.push(ROUTES.DASHBOARD)
+        router.refresh()
+        return
+      }
+
       try {
         const { error } = await supabase.auth.signInWithPassword({
-          email: data.email.toLowerCase().trim(),
+          email,
           password: data.password,
         })
 

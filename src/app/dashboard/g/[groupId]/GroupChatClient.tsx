@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import ChatPanel from '@/components/dashboard/ChatPanel'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured, withTimeout } from '@/lib/supabase/client'
 import { MESSAGE_RATE_LIMIT } from '@/lib/constants'
 import type {
   GroupWithMeta,
@@ -60,7 +60,7 @@ export default function GroupChatClient({
 
   // Setup Supabase Realtime Channel
   useEffect(() => {
-    if (!initialGroup.id) return
+    if (!initialGroup.id || !isSupabaseConfigured()) return
 
     const channel = supabase
       .channel(`group:${initialGroup.id}`)
@@ -189,19 +189,27 @@ export default function GroupChatClient({
   // Load more / pagination
   const handleLoadMore = async () => {
     if (isLoadingMore || !hasMore || messages.length === 0) return
+    if (!isSupabaseConfigured()) {
+      setHasMore(false)
+      return
+    }
     setIsLoadingMore(true)
     try {
       const oldest = messages[0]
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(initialGroup.id)
       if (isUUID && oldest?.created_at) {
-        const { data, error } = await supabase
-          .from('messages')
-          .select('*, sender:profiles(*)')
-          .eq('group_id', initialGroup.id)
-          .eq('is_deleted', false)
-          .lt('created_at', oldest.created_at)
-          .order('created_at', { ascending: false })
-          .limit(30)
+        const { data, error } = await withTimeout(
+          supabase
+            .from('messages')
+            .select('*, sender:profiles(*)')
+            .eq('group_id', initialGroup.id)
+            .eq('is_deleted', false)
+            .lt('created_at', oldest.created_at)
+            .order('created_at', { ascending: false })
+            .limit(30),
+          1500,
+          { data: null, error: null } as any
+        )
 
         if (data && data.length > 0) {
           const older: MessageWithSender[] = data.reverse().map((m: any) => ({
@@ -286,23 +294,25 @@ export default function GroupChatClient({
 
     updateLocalCache((prev) => [...prev, optimisticMsg])
 
-    try {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(initialGroup.id)
-      if (isUUID) {
-        const { data: inserted, error } = await supabase
-          .from('messages')
-          .insert(payload)
-          .select()
-          .single()
-
-        if (!error && inserted) {
-          updateLocalCache((prev) =>
-            prev.map((m) => (m.id === tempId ? { ...m, id: inserted.id } : m))
+    if (isSupabaseConfigured()) {
+      try {
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(initialGroup.id)
+        if (isUUID) {
+          const { data: inserted, error } = await withTimeout(
+            supabase.from('messages').insert(payload).select().single(),
+            2000,
+            { data: null, error: null } as any
           )
+
+          if (!error && inserted) {
+            updateLocalCache((prev) =>
+              prev.map((m) => (m.id === tempId ? { ...m, id: inserted.id } : m))
+            )
+          }
         }
+      } catch {
+        // Local demo mode fallback
       }
-    } catch {
-      // Local demo mode fallback
     }
   }
 
@@ -347,23 +357,25 @@ export default function GroupChatClient({
       })
     )
 
-    try {
-      if (willRemove) {
-        await supabase
-          .from('reactions')
-          .delete()
-          .eq('message_id', messageId)
-          .eq('user_id', currentUser.id)
-          .eq('emoji', emoji)
-      } else {
-        await supabase.from('reactions').upsert({
-          message_id: messageId,
-          user_id: currentUser.id,
-          emoji,
-        })
+    if (isSupabaseConfigured()) {
+      try {
+        if (willRemove) {
+          await supabase
+            .from('reactions')
+            .delete()
+            .eq('message_id', messageId)
+            .eq('user_id', currentUser.id)
+            .eq('emoji', emoji)
+        } else {
+          await supabase.from('reactions').upsert({
+            message_id: messageId,
+            user_id: currentUser.id,
+            emoji,
+          })
+        }
+      } catch {
+        // Handled
       }
-    } catch {
-      // Handled
     }
   }
 
@@ -385,21 +397,23 @@ export default function GroupChatClient({
       })
     )
 
-    try {
-      if (!willVote) {
-        await supabase
-          .from('helpful_votes')
-          .delete()
-          .eq('message_id', messageId)
-          .eq('user_id', currentUser.id)
-      } else {
-        await supabase.from('helpful_votes').insert({
-          message_id: messageId,
-          user_id: currentUser.id,
-        })
+    if (isSupabaseConfigured()) {
+      try {
+        if (!willVote) {
+          await supabase
+            .from('helpful_votes')
+            .delete()
+            .eq('message_id', messageId)
+            .eq('user_id', currentUser.id)
+        } else {
+          await supabase.from('helpful_votes').insert({
+            message_id: messageId,
+            user_id: currentUser.id,
+          })
+        }
+      } catch {
+        // Handled
       }
-    } catch {
-      // Handled
     }
   }
 
@@ -410,16 +424,18 @@ export default function GroupChatClient({
     )
     toast.success(isAnswer ? 'Marked as verified answer! (+10 rep)' : 'Unmarked answer')
 
-    try {
-      await supabase
-        .from('messages')
-        .update({
-          is_answer: isAnswer,
-          answer_marked_by: isAnswer ? currentUser.id : null,
-        })
-        .eq('id', messageId)
-    } catch {
-      // Handled
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase
+          .from('messages')
+          .update({
+            is_answer: isAnswer,
+            answer_marked_by: isAnswer ? currentUser.id : null,
+          })
+          .eq('id', messageId)
+      } catch {
+        // Handled
+      }
     }
   }
 
@@ -439,17 +455,19 @@ export default function GroupChatClient({
     )
     toast.success(isPinned ? 'Message pinned to top' : 'Message unpinned')
 
-    try {
-      await supabase
-        .from('messages')
-        .update({
-          is_pinned: isPinned,
-          pinned_by: isPinned ? currentUser.id : null,
-          pinned_at: isPinned ? new Date().toISOString() : null,
-        })
-        .eq('id', messageId)
-    } catch {
-      // Handled
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase
+          .from('messages')
+          .update({
+            is_pinned: isPinned,
+            pinned_by: isPinned ? currentUser.id : null,
+            pinned_at: isPinned ? new Date().toISOString() : null,
+          })
+          .eq('id', messageId)
+      } catch {
+        // Handled
+      }
     }
   }
 
@@ -460,13 +478,15 @@ export default function GroupChatClient({
     )
     toast.success('Message deleted')
 
-    try {
-      await supabase
-        .from('messages')
-        .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-        .eq('id', messageId)
-    } catch {
-      // Handled
+    if (isSupabaseConfigured()) {
+      try {
+        await supabase
+          .from('messages')
+          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+          .eq('id', messageId)
+      } catch {
+        // Handled
+      }
     }
   }
 

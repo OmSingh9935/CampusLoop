@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Sparkles, Search, Loader2 } from 'lucide-react'
 import OpportunityCard from '@/components/opportunities/OpportunityCard'
 import EmptyState from '@/components/shared/EmptyState'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured, withTimeout } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import type { OpportunityCard as OpportunityType } from '@/types'
 
@@ -149,13 +149,23 @@ export default function OpportunitiesPage() {
   useEffect(() => {
     async function loadOpportunities() {
       setIsLoading(true)
+      if (!isSupabaseConfigured()) {
+        setOpportunities(SAMPLE_OPPORTUNITIES)
+        setIsLoading(false)
+        return
+      }
+
       try {
-        const { data } = await supabase
-          .from('messages')
-          .select('id, content, tag, created_at, group_id, groups(name, icon), profiles(id, campus_id, full_name, role, department, avatar_url)')
-          .eq('tag', 'opportunity')
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: false })
+        const { data } = await withTimeout(
+          supabase
+            .from('messages')
+            .select('id, content, tag, created_at, group_id, groups(name, icon), profiles(id, campus_id, full_name, role, department, avatar_url)')
+            .eq('tag', 'opportunity')
+            .eq('is_deleted', false)
+            .order('created_at', { ascending: false }),
+          1500,
+          { data: null } as any
+        )
 
         if (data && data.length > 0) {
           const mapped: OpportunityType[] = data.map((item: any) => ({

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, isSupabaseConfigured, withTimeout } from '@/lib/supabase/server'
 import Sidebar from '@/components/dashboard/Sidebar'
 import GroupList from '@/components/dashboard/GroupList'
 import DashboardShell from '@/components/dashboard/DashboardShell'
@@ -192,29 +192,43 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-
-  // Verify auth session
   let user = null
-  try {
-    const { data } = await supabase.auth.getUser()
-    user = data?.user || null
-  } catch {
-    user = null
+
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient()
+      const { data } = await withTimeout(
+        supabase.auth.getUser(),
+        1500,
+        { data: { user: null }, error: null } as any
+      )
+      user = data?.user || null
+    } catch {
+      user = null
+    }
   }
 
   let currentUser: Profile | null = null
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+  if (user && isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient()
+      const { data: profile } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single(),
+        1500,
+        { data: null, error: null } as any
+      )
 
-    if (profile) {
-      currentUser = profile
-    } else {
+      if (profile) {
+        currentUser = profile
+      }
+    } catch {}
+
+    if (!currentUser) {
       // Mock profile if DB trigger has not run yet
       currentUser = {
         id: user.id,
@@ -272,21 +286,30 @@ export default async function DashboardLayout({
     }
   }
 
-  // Fetch groups from Supabase
+  // Fetch groups from Supabase or use preloaded defaults
   let groups: GroupWithMeta[] = []
-  try {
-    const { data: dbGroups } = await supabase
-      .from('groups')
-      .select('*')
-      .eq('is_archived', false)
-      .order('sort_order', { ascending: true })
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient()
+      const { data: dbGroups } = await withTimeout(
+        supabase
+          .from('groups')
+          .select('*')
+          .eq('is_archived', false)
+          .order('sort_order', { ascending: true }),
+        1500,
+        { data: null, error: null } as any
+      )
 
-    if (dbGroups && dbGroups.length > 0) {
-      groups = dbGroups
-    } else {
+      if (dbGroups && dbGroups.length > 0) {
+        groups = dbGroups
+      } else {
+        groups = DEFAULT_PREVIEW_GROUPS
+      }
+    } catch {
       groups = DEFAULT_PREVIEW_GROUPS
     }
-  } catch {
+  } else {
     groups = DEFAULT_PREVIEW_GROUPS
   }
 

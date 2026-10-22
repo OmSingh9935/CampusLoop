@@ -1,5 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr'
 
+export { isSupabaseConfigured, withTimeout } from './config'
+
 /**
  * Browser-side Supabase client.
  * Uses anon key — RLS enforced on all tables.
