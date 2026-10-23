@@ -152,5 +152,27 @@
     "updated_at": "2026-10-23T05:15:03.466Z",
     "salt": "salt_1792732503466_yj92a",
     "password_hash": "2c3726b5"
+  },
+  {
+    "id": "usr_1792732867762_f2oe",
+    "campus_id": "CL-667858",
+    "full_name": "Gaurav Verma",
+    "username": "gaurav.25001105",
+    "email": "gaurav.25001105@kiet.edu",
+    "role": "student",
+    "department": "Computer Science & Engineering",
+    "year": 2,
+    "bio": "KIET student • Department of Computer Science & Engineering",
+    "avatar_url": null,
+    "is_verified": true,
+    "is_banned": false,
+    "is_muted": false,
+    "muted_until": null,
+    "helpful_count": 0,
+    "reputation": 15,
+    "created_at": "2026-10-23T05:21:07.762Z",
+    "updated_at": "2026-10-23T05:21:07.762Z",
+    "salt": "salt_1792732867762_cd5y2",
+    "password_hash": "2bac0095"
   }
 ]
