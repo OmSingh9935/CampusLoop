@@ -42,5 +42,27 @@
     "updated_at": "2026-10-23T05:00:38.090Z",
     "salt": "salt_1792731638090_o1gbo",
     "password_hash": "21a3f19d"
+  },
+  {
+    "id": "usr_1792731802435_85iv",
+    "campus_id": "CL-212765",
+    "full_name": "Naveen Singh",
+    "username": "naveensingh",
+    "email": "naveensingh@kiet.edu",
+    "role": "student",
+    "department": "Information Technology",
+    "year": 3,
+    "bio": "KIET student • Department of Information Technology",
+    "avatar_url": null,
+    "is_verified": true,
+    "is_banned": false,
+    "is_muted": false,
+    "muted_until": null,
+    "helpful_count": 0,
+    "reputation": 15,
+    "created_at": "2026-10-23T05:03:22.435Z",
+    "updated_at": "2026-10-23T05:03:22.435Z",
+    "salt": "salt_1792731802435_e33kn",
+    "password_hash": "2afe13db"
   }
 ]
