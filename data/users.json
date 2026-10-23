@@ -86,5 +86,27 @@
     "updated_at": "2026-10-23T05:03:34.691Z",
     "salt": "salt_1792731814691_y62jm",
     "password_hash": "6e64f63e"
+  },
+  {
+    "id": "usr_1792731898712_7clj",
+    "campus_id": "CL-234871",
+    "full_name": "Shyam",
+    "username": "shyam",
+    "email": "shyam@kiet.edu",
+    "role": "student",
+    "department": "Biotechnology",
+    "year": 1,
+    "bio": "KIET student • Department of Biotechnology",
+    "avatar_url": null,
+    "is_verified": true,
+    "is_banned": false,
+    "is_muted": false,
+    "muted_until": null,
+    "helpful_count": 0,
+    "reputation": 15,
+    "created_at": "2026-10-23T05:04:58.712Z",
+    "updated_at": "2026-10-23T05:04:58.712Z",
+    "salt": "salt_1792731898712_688un",
+    "password_hash": "7a7d4a79"
   }
 ]
