@@ -196,5 +196,27 @@
     "updated_at": "2026-10-23T06:10:03.285Z",
     "salt": "salt_1792735803285_n78u5",
     "password_hash": "440a2c21"
+  },
+  {
+    "id": "usr_1792775088371_9rl4",
+    "campus_id": "CL-537352",
+    "full_name": "Abcd",
+    "username": "adminn",
+    "email": "adminn@kiet.edu",
+    "role": "student",
+    "department": "Computer Science (AI/ML)",
+    "year": 2,
+    "bio": "KIET student • Department of Computer Science (AI/ML)",
+    "avatar_url": null,
+    "is_verified": true,
+    "is_banned": false,
+    "is_muted": false,
+    "muted_until": null,
+    "helpful_count": 0,
+    "reputation": 15,
+    "created_at": "2026-10-23T17:04:48.371Z",
+    "updated_at": "2026-10-23T17:04:48.371Z",
+    "salt": "salt_1792775088371_373xv",
+    "password_hash": "5f0a36b0"
   }
 ]
