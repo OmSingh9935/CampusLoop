@@ -262,5 +262,27 @@
     "updated_at": "2026-10-31T04:49:27.168Z",
     "salt": "salt_1793422167168_l9dtt",
     "password_hash": "143bca0c"
+  },
+  {
+    "id": "usr_1793423393992_cijl",
+    "campus_id": "CL-649494",
+    "full_name": "Ekansh Goel",
+    "username": "ekansh.25001104",
+    "email": "ekansh.25001104@kiet.edu",
+    "role": "student",
+    "department": "Computer Science & Engineering",
+    "year": 2,
+    "bio": "KIET student • Department of Computer Science & Engineering",
+    "avatar_url": null,
+    "is_verified": true,
+    "is_banned": false,
+    "is_muted": false,
+    "muted_until": null,
+    "helpful_count": 0,
+    "reputation": 15,
+    "created_at": "2026-10-31T05:09:53.992Z",
+    "updated_at": "2026-10-31T05:09:53.992Z",
+    "salt": "salt_1793423393992_aap3l",
+    "password_hash": "54bfcf38"
   }
 ]
